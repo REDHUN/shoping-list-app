@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shopinglist/data/categories.dart';
 import 'package:shopinglist/models/category.dart';
 import 'package:shopinglist/models/grocery_item.dart';
+import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -19,6 +22,17 @@ class _NewItemState extends State<NewItem> {
   void _saveItem() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      final url =
+          Uri.https('download-e903e.firebaseio.com', 'shopping-list.json');
+      http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          ' name ': _enteredName,
+          'quantity ': _enteredQuantity,
+          'category ': _selectedCategory.title,
+        }),
+      );
       Navigator.of(context).pop(GroceryItem(
           category: _selectedCategory,
           id: DateTime.now().toString(),
