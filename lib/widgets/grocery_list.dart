@@ -17,6 +17,8 @@ class GrocesoryList extends StatefulWidget {
 
 class _GrocesoryListState extends State<GrocesoryList> {
   List<GroceryItem> _groceoryList = [];
+  var _isLoading = true;
+  String? _error;
   @override
   void initState() {
     _loadItem();
@@ -26,28 +28,47 @@ class _GrocesoryListState extends State<GrocesoryList> {
   void _loadItem() async {
     final url =
         Uri.https('download-e903e.firebaseio.com', 'shopping-list.json');
-    final response = await http.get(url);
-    final Map<String, dynamic> listData = jsonDecode(response.body);
+    try {
+      final response = await http.get(url);
 
-    List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final category = categories.entries
-          .firstWhere(
-              (catItem) => catItem.value.title == item.value["category"]!)
-          .value;
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'failed to fetch data. Please try again later';
+        });
+      }
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      final Map<String, dynamic> listData = jsonDecode(response.body);
 
-      loadedItems.add(GroceryItem(
-          id: item.key,
-          name: item.value["name"],
-          quantity: item.value["quantity"],
-          category: category));
-      // print(loadedItems.length);
-      // print(item.value[" name "]);
+      List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final category = categories.entries
+            .firstWhere(
+                (catItem) => catItem.value.title == item.value["category"]!)
+            .value;
+
+        loadedItems.add(GroceryItem(
+            id: item.key,
+            name: item.value["name"],
+            quantity: item.value["quantity"],
+            category: category));
+        // print(loadedItems.length);
+        // print(item.value[" name "]);
+      }
+
+      setState(() {
+        _groceoryList = loadedItems;
+        _isLoading = false;
+      });
+    } catch (err) {
+      setState(() {
+        _error = 'Something Went wrong';
+      });
     }
-
-    setState(() {
-      _groceoryList = loadedItems;
-    });
   }
 
   void _addItem() async {
@@ -63,15 +84,30 @@ class _GrocesoryListState extends State<GrocesoryList> {
     });
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    final index = _groceoryList.indexOf(item);
+
+    final url = Uri.https(
+        'download-e903e.firebaseio.com', 'shopping-list/${item.id}.json');
     setState(() {
       _groceoryList.remove(item);
     });
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      setState(() {
+        _groceoryList.insert(index, item);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text('Nop!!! Please Add Grocessory'));
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
     if (_groceoryList.isNotEmpty) {
       setState(() {
         content = ListView.builder(
@@ -92,6 +128,9 @@ class _GrocesoryListState extends State<GrocesoryList> {
                   ),
                 ));
       });
+    }
+    if (_error != null) {
+      content = Center(child: Text(_error.toString()));
     }
     return Scaffold(
       appBar: AppBar(
