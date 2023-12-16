@@ -5,6 +5,7 @@ import 'package:shopinglist/data/categories.dart';
 import 'package:shopinglist/models/category.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:shopinglist/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -28,23 +29,25 @@ class _NewItemState extends State<NewItem> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          ' name ': _enteredName,
-          'quantity ': _enteredQuantity,
-          'category ': _selectedCategory.title,
+          'name': _enteredName,
+          'quantity': _enteredQuantity,
+          'category': _selectedCategory.title,
         }),
       );
       print(response.body);
       print(response.statusCode);
 
+      final resData = json.decode(response.body);
+
       if (!context.mounted) {
         return;
       }
-      Navigator.of(context).pop();
-      // Navigator.of(context).pop(GroceryItem(
-      //     category: _selectedCategory,
-      //     id: DateTime.now().toString(),
-      //     name: _enteredName,
-      //     quantity: _enteredQuantity));
+
+      Navigator.of(context).pop(GroceryItem(
+          category: _selectedCategory,
+          id: resData['name'],
+          name: _enteredName,
+          quantity: _enteredQuantity));
     } //to validate;
     //to save;
   }
